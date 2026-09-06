@@ -50,7 +50,6 @@ ${color.bold('Options')}
 ${color.bold('Environment')}
   EDGE_TTS_BIN       Path to the edge-tts executable, when it is not on PATH
   GEMINI_API_KEY     Gemini image API key (--backend gemini)
-  COMFY_URL          ComfyUI base URL (default http://127.0.0.1:8188)
 `
 
 interface Options {

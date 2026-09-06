@@ -31,7 +31,7 @@ export const log = {
 
 /**
  * Thrown for problems the user can fix (bad config, missing data field, no
- * ComfyUI model). The CLI prints `message` + `hint` without a stack trace —
+ * Gemini API key). The CLI prints `message` + `hint` without a stack trace —
  * anything else is a bug and keeps its stack.
  */
 export class UserError extends Error {
