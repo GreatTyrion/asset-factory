@@ -19,6 +19,16 @@ Data structure facts (checked 2026-09-06):
 
 ## Adding a new consumer (checklist)
 
+### For brand-new apps — plant these seeds at build time (saves a retrofit later)
+When Cursor/Claude scaffolds a new kids app (placeholders first, assets later), ask it to:
+1. **Data module exports an array** of items with a stable slug `id` (e.g. `src/data/creatures.ts` exporting `CREATURES`)
+2. **Each item carries an English `imagePrompt` field** — the only thing that can't be auto-derived. Write it together with the content (marine-organism lacks this and must retrofit; gourmet has it and connects trivially). Even if images stay placeholders, the field should exist.
+3. **Placeholder-friendly image component** (gourmet's `FoodImage` pattern: real image if `public/images/<plural>/<id>.webp` exists, else category emoji + name) + image convention `public/images/<plural>/<id>.webp` at 768px
+4. Keep the art-direction vibe documented (a style guide string somewhere — CLAUDE.md or config) — the first asset batch for a new app usually needs 1–2 style iterations (the gourmet SDXL saga was this), so having the intended vibe in writing shortens that loop
+
+Then, when assets are wanted later: follow the checklist below — connection is a 10-minute job if seeds 1–3 exist.
+
+### Retrofit checklist (for existing apps)
 1. Add `factory.config.json` at the app root (copy gourmet's; fix `dataSource`/`dataExport`/`idField`/`labelField`/`outDir`/`styleGuide`; run `asset-factory init` for a template)
 2. Verify data fields exist (`promptField` for image, `textField` for tts) — add fields to the data module if missing
 3. `audit` → `generate` → `import` → `tts` (from the asset-factory dir with `--cwd ../<app>` until the app has the `file:` devDependency)
