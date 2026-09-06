@@ -43,6 +43,8 @@
 
 - `idea.md` — 需求来源与现状痛点
 - `PLAN.md` — 实施计划（环境事实、架构、分阶段验收、非目标）
+- `CONSUMERS.md` — 接入方登记表（谁在用、marine 等谁待接入）与新增接入方 checklist
+- `docs/integration-guide.md` — 把资产接进 App 的完整步骤（gourmet 已按此接入）
 
 ## 命令速览
 

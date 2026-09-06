@@ -1,6 +1,6 @@
 # asset-factory 开发计划
 
-> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 ✅（完结）**。图像方向 C（gemini-3.1-flash-image）批量 28 张完成，用户整体满意（含个别瑕疵，如 tanghulu/beijing-kaoya/doujiang-youtiao，用户接受不改）。**最终决策：备选集不合入**——webp 存 `gourmet/gemini-batch/`、原始 PNG 存 `gourmet/gemini-batch-png/`，App 现网图保持原手工集（已在 CLAUDE.md 铁律注明）。实测成本 ~0.087 CAD/图，28 张 ≈ 2.4 CAD。管线能力已验证可复现。实现依据；idea.md 是需求来源。
+> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 ✅ + Phase 4 主体 ✅**。图像方向 C（gemini-3.1-flash-image），gourmet 32 菜图音齐全、mp3 已接入 App（`92fa7e0`）；备选集归档不合入。Phase 4 文档类完成（CONSUMERS.md/AGENTS.md/CLAUDE.md 补丁），剩代码类：多项目 audit、file: 安装、marine 接入（见 §6）。实现依据；idea.md 是需求来源。
 > 首个真实使用方（dogfooding，自己先尝自己做的东西）：gourmet（28 图，真实数据在 `src/data/foods.ts`）和 marine-organism（16 图，`src/data/creatures.ts`）。
 
 ## 1. 环境事实（2026-08 实测，写代码前先复核）
@@ -112,13 +112,12 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
 - **备选方向（已定：C）**：~~A. 换插画向 checkpoint~~（已裁决放弃）；~~B. IP-Adapter~~（救不了语义）；**✅ C. Gemini API 适配器出图（现网同源，用户 2026-09-06 选定，billing 已开通 ¥10）**；D. 图像保持手工/manual 模式（备用）
 - **执行状态**：评审残留已清理（3 个 review 目录删除，均确认 untracked）；批量隔离目录 `gourmet/gemini-batch/` 就绪（强化风格指南：禁文字/禁厨房虚化/禁多余餐具/纯奶油底，清单构建验证 28 项，present=0 空目录）。⚠️ **`gourmet/incoming-images/` 含 25 张 2026-07-23 的 2048² 原始手工 PNG（高清母本，gitignored）——任何清理/生成都不得触碰**。若 `gemini-3.1-flash-image` 风格与现网有差，换 `GEMINI_IMAGE_MODEL=gemini-2.5-flash-image`（Nano Banana，marine 同源）或 `gemini-3-pro-image` 再评
 
-## 6. Phase 4 — 收尾 + 推广（让项目们真的用起来）
-- `audit` 加多项目报告（一个命令扫全部 playground 带 config 的项目）
-- **给 gourmet/marine 接上**：各执行 `npm i -D asset-factory@file:../asset-factory`（gourmet 的 config Phase 1 已配好）；marine 配好 config 后跑通 16/16
-- **给 gourmet/marine 的 CLAUDE.md 打补丁**：图片/配音统一走 `../asset-factory`，本地 `import-images.mjs` 标 deprecated（不删，留作对照）——这是 agent 在旧项目里改用新工具的关键一步
-- asset-factory 仓库维护 **CONSUMERS.md**：接入方清单（项目 / 数据源 / 资产规格 / 状态），作为唯一真相
-- playground 根目录建 AGENTS.md：声明公共工具（asset-factory 管素材、local-reader 管翻译…）；仅对从根目录开工的会话生效，不替代各项目 CLAUDE.md
-- `docs/`：README + 接入指南 + ComfyUI 模型采购清单（SDXL 起步 ~6.5GB）
+## 6. Phase 4 — 收尾 + 推广 ✅ 主体完成（2026-09-06）
+- **CONSUMERS.md** ✅ 已建：接入方登记表 + 新接入方 checklist（gourmet ✅ 32 菜；marine 🔶 待接入，前置条件已查清）
+- **playground/AGENTS.md** ✅ 已建：公共工具声明（asset-factory 管素材、local-reader 管翻译）
+- **gourmet CLAUDE.md 补丁** ✅ 已打（英文「Asset pipeline」段，含归档铁律）；gourmet 的旧脚本 deprecated 标注已含其中
+- **docs 清理** ✅：README 状态更新（备选集归档、4 新菜上线）；ComfyUI 采购清单项作废（SDXL 路径已否决）
+- 剩余（代码类/需 Cursor）：① `audit` 多项目报告；② gourmet/marine 的 `file:` 依赖安装；③ marine 接入（config + 数据补 `imagePrompt` 字段或合成提示词 + tts funIntro en-US 组 + CLAUDE.md 补丁 + 播放接入可复用 gourmet `useNarration` 模式）——marine 详情见 CONSUMERS.md
 
 ## 7. 非目标
 - 不做角色一致性（v2：img2img 参考图 / IP-Adapter）
