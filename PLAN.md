@@ -1,6 +1,6 @@
 # asset-factory 开发计划
 
-> 状态：计划就绪，待 Cursor/Claude Code 实施。实现依据；idea.md 是需求来源。
+> 状态：**Phase 1 ✅ 已完成**（提交 `8a2b46e`：86/86 测试通过，gourmet audit 28/28）。下一步 Phase 2 配音。实现依据；idea.md 是需求来源。
 > 首个吃自己的客户：gourmet（28 图，真实数据在 `src/data/foods.ts`）和 marine-organism（16 图，`src/data/creatures.ts`）。
 
 ## 1. 环境事实（2026-08 实测，写代码前先复核）
@@ -68,21 +68,27 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
    效果：`node_modules/.bin/asset-factory` 成为指向 `../asset-factory` 的软链 → 该项目内 `npx asset-factory generate` 本地命中，不碰 npm 官网；工厂代码更新无需重装
 3. 备选：全局安装 `npm i -g <asset-factory 绝对路径>`，之后任何目录直接 `asset-factory generate`（不依赖消费项目的 package.json）
 
-## 3. Phase 1 — 骨架 + prompts/import/audit（先跑通 gourmet 全流程）
-1. `npm init` + tsconfig + vitest；package.json 声明 `bin.asset-factory`；`factory.config.schema.json`（JSON Schema，Cursor 写完让 CLI 校验配置）
-2. `manifest.ts`：读 config → import 数据模块（type-strip）→ 展开资产清单（id、prompt、输出路径）
-3. `prompts.ts`：markdown sheet（复用 gourmet 风格串）+ `prompts.json`（machine-readable，供 generate 用）
-4. `import-images.ts`：incoming 目录 → 按 id 转 webp/768 → 落到 outDir；报告未知文件（= gourmet import-images.mjs 逻辑，收敛）
-5. `audit.ts`：清单 vs 实际文件 → 缺失列表 + 覆盖率
-6. `state.ts` + cli 骨架：子命令分发、彩色输出、非零退出码
-7. **验收**：在 gourmet 根放 config，`prompts` 产出的 sheet 与手写版等价；把现有 28 张 webp 挪到 incoming 跑 `import` + `audit`，覆盖率 28/28
-8. 测试：manifest 解析（含缺字段报错）、prompts 输出快照、import 的 sharp 转换（临时目录）、audit 计数
+## 3. Phase 1 — 骨架 + prompts/import/audit ✅ 已完成
+1. ✅ `npm init` + tsconfig + vitest；package.json 声明 `bin.asset-factory`；`factory.config.schema.json`（JSON Schema，Cursor 写完让 CLI 校验配置）
+2. ✅ `manifest.ts`：读 config → import 数据模块（type-strip）→ 展开资产清单（id、prompt、输出路径）
+3. ✅ `prompts.ts`：markdown sheet（复用 gourmet 风格串）+ `prompts.json`（machine-readable，供 generate 用）
+4. ✅ `import-images.ts`：incoming 目录 → 按 id 转 webp/768 → 落到 outDir；报告未知文件（= gourmet import-images.mjs 逻辑，收敛）
+5. ✅ `audit.ts`：清单 vs 实际文件 → 缺失列表 + 覆盖率
+6. ✅ `state.ts` + cli 骨架：子命令分发、彩色输出、非零退出码
+7. ✅ **验收**：gourmet config 配好；`audit --cwd ../gourmet` → **28/28 assets**；CLI 从 App 根目录或 `--cwd` 均可
+8. ✅ 测试：vitest **86/86**（8 文件，含 `gourmet.test.ts` 真实数据测试、cli 退出码测试）
+> 完成记录：commit `8a2b46e`；实际实现还多了 `init` 子命令、schema 校验、`--group/--only/--json/--skip-existing` 参数、`scripts/smoke.sh`。
+> 遗留（属 Phase 4）：gourmet 尚未执行 `npm i -D asset-factory@file:../asset-factory`，当前需在工厂目录用 `--cwd ../gourmet` 调用。
 
-## 4. Phase 2 — 配音（全新能力，先于图像后端）
-1. `tts.ts`：调 edge-tts（子进程，`--voice` `--text`），输出 `{id}.mp3` + `audio-manifest.json`（id→文件、时长），进度入 state 可续跑
-2. gourmet 实测：给 28 道菜的 `intro`/`name` 配音（zh-CN），验收：文件齐全 + 抽样听音质 + 与 `useSpeech` 现场合成对比
-3. `docs/integration-guide.md`：gourmet 改 `useSpeech` 为播放预生成 mp3 的步骤（供后续单独改 App，不在本仓库做）
-4. 测试：edge-tts 子进程封装（假 voice 注入、超时、失败重试）
+## 4. Phase 2 — 配音（全新能力，先于图像后端）✅ 已完成
+1. ✅ `tts.ts`：调 edge-tts（子进程，`--voice` `--text`），输出 `{id}.mp3` + `audio-manifest.json`（id→文件、时长），进度入 state 可续跑
+2. ✅ gourmet 实测：28 道菜的 `intro` 配音（zh-CN-XiaoxiaoNeural，`rate: -8%`）→ **28/28，267.1s 音频，1.6 MB**；`audit` 图+音合计 **56/56**
+3. ✅ `docs/integration-guide.md`：gourmet 改 `useSpeech` 为播放预生成 mp3 的步骤（供后续单独改 App，不在本仓库做）
+4. ✅ 测试：vitest **132/132**（新增 `tts.test.ts` 34 例、`mp3.test.ts` 7 例）；子进程用真实可执行文件 `test/fixtures/fake-edge-tts.mjs` 注入 badvoice/超时/flaky 重试等分支
+
+> 完成记录：实现还多了 `mp3.ts`（无依赖解析时长，与 macOS `afinfo` 逐帧一致）、`textHash` 陈旧检测（改了 `intro` 只重配那一条）、`--concurrency/--timeout/--retries`、`EDGE_TTS_BIN` 覆盖、smoke 加了 tts 两步。
+> 环境事实修正：edge-tts 是**微软在线服务**（非本地合成），故有超时+重试；prosody 参数必须写成 `--rate=-8%`（argparse 会把 `-8%` 当成下一个 flag），真实验收时踩到并已修。
+> 音频入库：`public/audio/` **提交进 gourmet 仓库**（与 `public/images/` 一致，clone 即可用，不依赖在线服务的可复现性）。
 
 ## 5. Phase 3 — 图像后端（可插拔，从 ComfyUI 开始）
 1. `backend/types.ts`：`BackendAdapter { generate(item, style): Promise<{file}> }`

@@ -113,7 +113,22 @@
         },
         "voice": {
           "type": "string",
-          "description": "kind=tts: edge-tts voice, e.g. zh-CN-XiaoxiaoNeural."
+          "description": "kind=tts: edge-tts voice, e.g. zh-CN-XiaoxiaoNeural. List them with `edge-tts --list-voices`."
+        },
+        "rate": {
+          "type": "string",
+          "pattern": "^[+-][0-9]+%$",
+          "description": "kind=tts: speaking rate offset, e.g. \"-8%\" to slow narration for young readers."
+        },
+        "volume": {
+          "type": "string",
+          "pattern": "^[+-][0-9]+%$",
+          "description": "kind=tts: loudness offset, e.g. \"+10%\"."
+        },
+        "pitch": {
+          "type": "string",
+          "pattern": "^[+-][0-9]+Hz$",
+          "description": "kind=tts: pitch offset, e.g. \"+5Hz\"."
         }
       }
     }

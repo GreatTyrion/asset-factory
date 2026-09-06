@@ -30,9 +30,11 @@ interface Run {
   stderr: string
 }
 
-async function cli(args: string[]): Promise<Run> {
+async function cli(args: string[], env: Record<string, string> = {}): Promise<Run> {
   try {
-    const { stdout, stderr } = await run(process.execPath, [CLI, ...args], { env: { ...process.env, NO_COLOR: '1' } })
+    const { stdout, stderr } = await run(process.execPath, [CLI, ...args], {
+      env: { ...process.env, NO_COLOR: '1', ...env },
+    })
     return { code: 0, stdout, stderr }
   } catch (err) {
     const e = err as { code?: number; stdout?: string; stderr?: string }
@@ -173,14 +175,60 @@ describe('cli', () => {
 
   it('says which phase the unfinished commands belong to', async () => {
     const { app } = await demo()
-    for (const [command, phase] of [
-      ['generate', 'Phase 3'],
-      ['tts', 'Phase 2'],
-    ]) {
-      const result = await cli([command!, '--cwd', app.root])
-      expect(result.code).toBe(2)
-      expect(result.stderr).toContain(phase!)
-    }
+    const result = await cli(['generate', '--cwd', app.root])
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain('Phase 3')
+  })
+
+  it('synthesizes voice-over and writes an audio manifest', async () => {
+    const { app } = await demo({
+      config: demoConfig({
+        items: [
+          {
+            kind: 'tts',
+            outDir: 'public/audio',
+            textField: 'intro',
+            lang: 'zh-CN',
+            voice: 'zh-CN-XiaoxiaoNeural',
+          },
+        ],
+      }),
+    })
+
+    const result = await cli(['tts', '--cwd', app.root], {
+      EDGE_TTS_BIN: resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fake-edge-tts.mjs'),
+    })
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('zh-CN-XiaoxiaoNeural')
+    expect(result.stdout).toContain('Made 3, skipped 0, failed 0')
+    await expect(readFile(join(app.root, 'public', 'audio', 'audio-manifest.json'), 'utf8')).resolves.toContain(
+      '"/audio/apple.mp3"',
+    )
+  })
+
+  it('exits non-zero when a clip fails to synthesize', async () => {
+    const { app } = await demo({
+      config: demoConfig({
+        items: [{ kind: 'tts', outDir: 'public/audio', textField: 'intro', voice: 'zh-CN-XiaoxiaoNeural' }],
+      }),
+    })
+
+    const result = await cli(['tts', '--cwd', app.root, '--retries', '0'], {
+      EDGE_TTS_BIN: resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fake-edge-tts.mjs'),
+      FAKE_TTS_MODE: 'fail',
+    })
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('429')
+    expect(result.stdout).toContain('failed 3')
+  })
+
+  it('rejects a nonsense numeric flag up front', async () => {
+    const { app } = await demo()
+    const result = await cli(['tts', '--cwd', app.root, '--concurrency', 'lots'])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('--concurrency must be an integer >= 1')
   })
 })
 

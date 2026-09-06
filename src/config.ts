@@ -37,6 +37,10 @@ export interface TtsItem {
   textField: string
   lang: string
   voice?: string
+  /** edge-tts prosody, e.g. "-8%" to slow narration down for young readers. */
+  rate?: string
+  volume?: string
+  pitch?: string
 }
 
 export type Item = ImageItem | TtsItem
@@ -162,6 +166,9 @@ export async function loadConfig(pathOrDir: string): Promise<FactoryConfig> {
       textField: it.textField,
       lang: it.lang ?? 'zh-CN',
       voice: it.voice,
+      rate: it.rate,
+      volume: it.volume,
+      pitch: it.pitch,
     } satisfies TtsItem
   })
 

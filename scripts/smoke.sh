@@ -114,7 +114,52 @@ if (done.length !== 3) { console.error('expected 3 done assets, got', done.lengt
 " || fail "state.json did not record all 3 assets"
 pass "state.json records all 3 assets as done"
 
-step "9. config that does not match the data"
+step "9. voice-over"
+# A fake edge-tts keeps the smoke test offline and deterministic; the real
+# binary is exercised by the gourmet acceptance run, not here.
+export EDGE_TTS_BIN="$ROOT/test/fixtures/fake-edge-tts.mjs"
+node -e "
+const fs = require('node:fs')
+const file = '$APP/factory.config.json'
+const cfg = JSON.parse(fs.readFileSync(file, 'utf8'))
+cfg.items.push({
+  kind: 'tts',
+  outDir: 'public/audio',
+  textField: 'name',
+  lang: 'zh-CN',
+  voice: 'zh-CN-XiaoxiaoNeural',
+})
+fs.writeFileSync(file, JSON.stringify(cfg, null, 2))
+" || fail "could not add a tts group to the config"
+
+expect_exit 0 "tts" node "$CLI" tts --cwd "$APP"
+expect_output "Made 3"
+[ -f "$APP/public/audio/octopus.mp3" ] || fail "no mp3 was written"
+[ -f "$APP/public/audio/audio-manifest.json" ] || fail "no audio manifest was written"
+expect_output "audio-manifest.json"
+pass "3 mp3 files + audio-manifest.json"
+
+node -e "
+const m = require('$APP/public/audio/audio-manifest.json')
+const clip = m.clips.octopus
+if (!clip) { console.error('octopus missing from the manifest'); process.exit(1) }
+if (!(clip.durationSec > 0)) { console.error('no duration:', clip); process.exit(1) }
+if (clip.url !== '/audio/octopus.mp3') { console.error('bad url:', clip.url); process.exit(1) }
+" || fail "audio manifest is missing duration or url"
+pass "manifest carries duration and a web url per clip"
+
+step "10. tts is resumable"
+expect_exit 0 "second tts run" node "$CLI" tts --cwd "$APP"
+expect_output "skipped 3"
+pass "a second run re-synthesizes nothing"
+
+expect_exit 0 "audit covering both kinds" node "$CLI" audit --cwd "$APP"
+expect_output "6/6"
+pass "audit now counts images and audio together: 6/6"
+
+unset EDGE_TTS_BIN
+
+step "11. config that does not match the data"
 node -e "
 const fs = require('node:fs')
 const file = '$APP/factory.config.json'

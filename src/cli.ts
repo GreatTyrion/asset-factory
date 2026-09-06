@@ -7,13 +7,14 @@
 import { relative } from 'node:path'
 import { parseArgs } from 'node:util'
 import { audit, formatBytes, type AuditReport } from './audit.ts'
-import { loadConfig, type ImageItem } from './config.ts'
+import { loadConfig, type ImageItem, type TtsItem } from './config.ts'
 import { importImages } from './import-images.ts'
 import { initConfig } from './init.ts'
 import { UserError, color, log } from './log.ts'
 import { buildManifest, resolveGroup, type Manifest } from './manifest.ts'
 import { writePrompts } from './prompts.ts'
 import { loadState, record, saveState } from './state.ts'
+import { generateTts } from './tts.ts'
 
 const VERSION = '0.1.0'
 
@@ -27,7 +28,7 @@ ${color.bold('Commands')}
   prompts    Write the prompt sheet + .asset-factory/prompts.json
   generate   Produce images through a backend            ${color.dim('(Phase 3)')}
   import     Convert the drop folder into final assets
-  tts        Synthesize voice-over with edge-tts          ${color.dim('(Phase 2)')}
+  tts        Synthesize voice-over with edge-tts
   audit      Coverage report: manifest vs. files on disk
 
 ${color.bold('Options')}
@@ -35,11 +36,17 @@ ${color.bold('Options')}
   --config <file>    Explicit factory.config.json path
   --group <name>     Item group to act on, when the config has several
   --json             Machine-readable output (audit, prompts)
-  --force            init: overwrite an existing config
-  --skip-existing    import: leave assets that already exist alone
+  --force            init: overwrite an existing config; tts: re-synthesize all
+  --skip-existing    Leave assets that already exist alone
   --only <ids>       Comma-separated ids to act on
+  --concurrency <n>  tts: parallel edge-tts calls (default 3)
+  --timeout <ms>     tts: per-clip timeout (default 60000)
+  --retries <n>      tts: retries per clip (default 2)
   -h, --help         Show this help
   -v, --version      Show the version
+
+${color.bold('Environment')}
+  EDGE_TTS_BIN       Path to the edge-tts executable, when it is not on PATH
 `
 
 interface Options {
@@ -50,6 +57,9 @@ interface Options {
   force: boolean
   skipExisting: boolean
   only?: string[]
+  concurrency?: number
+  timeoutMs?: number
+  retries?: number
 }
 
 async function load(options: Options): Promise<Manifest> {
@@ -118,6 +128,47 @@ async function cmdImport(options: Options): Promise<number> {
   return 0
 }
 
+function seconds(value: number): string {
+  return `${value.toFixed(1)}s`
+}
+
+async function cmdTts(options: Options): Promise<number> {
+  const manifest = await load(options)
+  const item = resolveGroup(manifest.config, 'tts', options.group) as TtsItem
+
+  log.info(`Synthesizing ${color.bold(item.name)} with ${color.cyan(item.voice ?? '(no voice set)')}`)
+
+  const result = await generateTts(manifest, item, {
+    force: options.force,
+    skipExisting: options.skipExisting,
+    only: options.only,
+    concurrency: options.concurrency,
+    timeoutMs: options.timeoutMs,
+    retries: options.retries,
+    onDone: (asset, clip) =>
+      log.ok(`${asset.id} ${color.dim(`${seconds(clip.durationSec)} · ${formatBytes(clip.bytes)}`)}`),
+    onSkip: (asset, reason) => log.skip(`skip ${asset.id} (${reason})`),
+    onRetry: (asset, attempt, error) => log.warn(`retry ${attempt} for ${asset.id}: ${error.message}`),
+    onFail: (asset, error) => log.error(`${asset.id}: ${error.message}`),
+  })
+
+  const clips = Object.values(result.manifest.clips)
+  const totalSec = clips.reduce((sum, c) => sum + c.durationSec, 0)
+  const totalBytes = clips.reduce((sum, c) => sum + c.bytes, 0)
+
+  log.info(
+    `\nMade ${result.made.length}, skipped ${result.skipped.length}, failed ${result.failed.length}. ` +
+      `${clips.length} clip(s), ${seconds(totalSec)} of audio, ${formatBytes(totalBytes)}.`,
+  )
+  log.ok(`${short(manifest.config.root, result.manifestPath)}`)
+
+  if (result.failed.length > 0) {
+    log.info(color.dim(`  Rerun \`asset-factory tts\` to retry just the failures.`))
+    return 1
+  }
+  return 0
+}
+
 async function cmdAudit(options: Options): Promise<number> {
   const manifest = await load(options)
   return reportAudit(await audit(manifest), options)
@@ -169,6 +220,9 @@ async function main(argv: string[]): Promise<number> {
       config: { type: 'string' },
       group: { type: 'string' },
       only: { type: 'string' },
+      concurrency: { type: 'string' },
+      timeout: { type: 'string' },
+      retries: { type: 'string' },
       json: { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       'skip-existing': { type: 'boolean', default: false },
@@ -188,6 +242,16 @@ async function main(argv: string[]): Promise<number> {
     return command ? 0 : 1
   }
 
+  /** Parse a numeric flag, rejecting junk up front rather than deep in a run. */
+  const numeric = (flag: string, raw: string | undefined, min: number): number | undefined => {
+    if (raw === undefined) return undefined
+    const value = Number(raw)
+    if (!Number.isInteger(value) || value < min) {
+      throw new UserError(`--${flag} must be an integer >= ${min}, got "${raw}".`)
+    }
+    return value
+  }
+
   const options: Options = {
     cwd: values.cwd,
     config: values.config,
@@ -196,6 +260,9 @@ async function main(argv: string[]): Promise<number> {
     force: values.force,
     skipExisting: values['skip-existing'],
     only: values.only?.split(',').map((s) => s.trim()).filter(Boolean),
+    concurrency: numeric('concurrency', values.concurrency, 1),
+    timeoutMs: numeric('timeout', values.timeout, 1),
+    retries: numeric('retries', values.retries, 0),
   }
 
   switch (command) {
@@ -207,10 +274,10 @@ async function main(argv: string[]): Promise<number> {
       return cmdImport(options)
     case 'audit':
       return cmdAudit(options)
+    case 'tts':
+      return cmdTts(options)
     case 'generate':
       return notYet('generate', 'Phase 3 — pluggable image backends', 'run `asset-factory prompts`, make the images by hand, then `asset-factory import`.')
-    case 'tts':
-      return notYet('tts', 'Phase 2 — edge-tts voice-over', 'the apps still synthesize speech at runtime.')
     default:
       log.error(`Unknown command "${command}".`)
       console.log(USAGE)

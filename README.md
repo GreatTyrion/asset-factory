@@ -2,7 +2,7 @@
 
 给孩子 App 批量生产教学资产（图片 + 配音）的本地流水线 CLI。吃掉 gourmet / marine-organism 里的人肉流程。
 
-**状态：Phase 1 已完成**——`prompts` / `import` / `audit` / `init` 可用，已在 `gourmet` 真实数据上跑通 28/28。`generate`（Phase 3）和 `tts`（Phase 2）还是占位命令。首个吃自己的客户：`gourmet`（28 张图 → 之后加配音）→ `marine-organism`（16 张图）。
+**状态：Phase 1 + 2 已完成**——`init` / `prompts` / `import` / `tts` / `audit` 可用，已在 `gourmet` 真实数据上跑通 **56/56**（28 张图 + 28 条中文配音）。只剩 `generate`（Phase 3，可插拔出图后端）是占位命令。首个吃自己的客户：`gourmet` → 接下来 `marine-organism`（16 张图）。
 
 ## 它是干什么的（大白话）
 
@@ -53,16 +53,21 @@ npx asset-factory init       # ✅ 在目标 App 里生成一份 factory.config.
 npx asset-factory prompts    # ✅ 生成 prompt sheet + .asset-factory/prompts.json
 npx asset-factory generate   #    交给后端批量出图（Phase 3：ComfyUI / Gemini / 手工）
 npx asset-factory import     # ✅ 统一转 webp/裁尺寸，落到 public/images/...
-npx asset-factory tts        #    edge-tts 批量生成中文/英文配音 mp3（Phase 2）
+npx asset-factory tts        # ✅ edge-tts 批量配音 → mp3 + audio-manifest.json
 npx asset-factory audit      # ✅ 覆盖率报告：还差哪些图/音；缺东西时退出码非零
 ```
 
-常用选项：`--cwd <dir>` 指定 App 根目录、`--group <name>` 指定资产组、`--json` 机器可读输出、`--skip-existing` 跳过已有文件。
+常用选项：`--cwd <dir>` 指定 App 根目录、`--group <name>` 指定资产组、`--json` 机器可读输出、`--skip-existing` 跳过已有文件、`--only a,b` 只处理指定 id。
+`tts` 另有 `--force`（全量重配）、`--concurrency` / `--timeout` / `--retries`；找不到 edge-tts 时用 `EDGE_TTS_BIN` 指路。
+
+配音是**增量**的：`audio-manifest.json` 记了每条原文的摘要，改了 `foods.ts` 里某道菜的 `intro`，下次 `tts` 只重配那一条。
+
+接入某个 App 的完整步骤见 [`docs/integration-guide.md`](docs/integration-guide.md)（含 gourmet 从 `useSpeech` 切到 mp3 的做法）。
 
 ## 开发
 
 ```bash
-npm test        # vitest，86 个用例
-npm run smoke   # 假数据端到端：prompts → 手工 → import → audit
+npm test        # vitest，132 个用例
+npm run smoke   # 假数据端到端：prompts → 手工 → import → tts → audit
 npm run typecheck
 ```
