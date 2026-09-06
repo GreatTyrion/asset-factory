@@ -1,6 +1,6 @@
 # asset-factory 开发计划
 
-> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 代码 ✅**（Phase 1: `8a2b46e`；Phase 2: `d7624ed`；Phase 3 适配器已落地）。**验收关口未过**：3 道菜 ComfyUI 出图等人工评审风格，未批量 28 张。
+> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 代码 ✅**。**图像方向：C（Gemini API，基准 gemini-3.1-flash-image）**。评审残留已清理（comfy-review/gemini-review/gemini-review-2.5 已删）；批量策略改为**不覆盖原图**：输出到 `gourmet/gemini-batch/`（隔离目录+强化风格指南，已验证 28 项清单），审过再谈替换。实测成本 ~0.087 CAD/图（6 图 0.52 CAD）。实现依据；idea.md 是需求来源。
 > 首个吃自己的客户：gourmet（28 图，真实数据在 `src/data/foods.ts`）和 marine-organism（16 图，`src/data/creatures.ts`）。
 
 ## 1. 环境事实（2026-08 实测，写代码前先复核）
@@ -95,8 +95,22 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
 2. ✅ `comfy.ts`：探测 `http://127.0.0.1:8188/system_stats`；无 checkpoint 时报下载命令；API-format workflow 可注入 prompt/seed
 3. ✅ `gemini.ts`：移植 gourmet `generate-images.mjs`（idempotent、跳过已有）
 4. ✅ `manual.ts`：输出 sheet + 空跑（提示人工）
-5. ⏳ **验收关口（真实验收，非 mock）**：xiaolongbao / mapo-doufu / tanghulu 三道菜 ComfyUI 出图 → import → **等人审风格**是否与现网 28 张一致。不一致就调 STYLE/checkpoint，**不要批量跑 28 张**。
+5. ❌ **验收关口（已审，未过）**：xiaolongbao / mapo-doufu / tanghulu 三道菜 ComfyUI 出图 → import → 人审风格。**结果：否决**，见下方 🔴 关口记录
 6. ✅ 测试：adapter 接口契约、comfy 探测失败分支、gemini 跳过已有
+
+### 🔴 关口记录（2026-09-06）：ComfyUI + SDXL base 1.0 路径被否决
+- **验收动作**：3 道菜（xiaolongbao/mapo-doufu/tanghulu）SDXL 出图 → 用户人工评审
+- **结果**：不认可。用户原话：「SDXL base 和现网那套软绘单品对不上」
+- **我的实测**（并排对比 tanghulu 原图 vs SDXL 图）：构图/配色接近，但微观差距明显——边缘不够干净（果与签粘连）、材质厚度感弱（糖衣像涂色不像晶体）、「高级插画感」滑向「普通写实渲染」；且 SDXL base **整组风格一致性弱**，单张接近不代表 28 张连贯
+- **根因**：现网 28 张出自 **Gemini 图像模型**（gourmet 手工路径 / marine Nano Banana = 同一模型家族），SDXL base 是另一套通用模型，风格语言天然不同
+- **无损**：3 张测试图留在 gourmet `incoming-images/`（gitignored）；`public/images/foods/` 原图未动
+- **二轮复核（2026-09-06，comfy-review/ 目录，用户带图逐张否决）**：失败升级诊断为三类结构性能力缺失，非风格微差——
+  1. **文化语义缺失**：tanghulu 被画成"野莓+树枝"，无糖衣光泽、竹签未串起果实（SD 系训练数据缺中国文化食物）
+  2. **道具细节崩坏**：mapo-doufu 左上小盏内筷子粗如船桨；且擅自堆砌米饭/蘸碟/桌垫整桌场景，违反风格指南"居中单品、画面干净"纪律
+  3. **构图纪律不守**：xiaolongbao 场景堆砌无层级、褶皱生硬皮厚无汤汁感，"随意堆放"产生不卫生暗示
+  → 三类问题均**非提示词可修**，属 base model 能力边界；换 SD 系 checkpoint 无法解决（语义只会更差）。选项 A 裁决：放弃
+- **备选方向（已定：C）**：~~A. 换插画向 checkpoint~~（已裁决放弃）；~~B. IP-Adapter~~（救不了语义）；**✅ C. Gemini API 适配器出图（现网同源，用户 2026-09-06 选定，billing 已开通 ¥10）**；D. 图像保持手工/manual 模式（备用）
+- **执行状态**：评审残留已清理（3 个 review 目录删除，均确认 untracked）；批量隔离目录 `gourmet/gemini-batch/` 就绪（强化风格指南：禁文字/禁厨房虚化/禁多余餐具/纯奶油底，清单构建验证 28 项，present=0 空目录）。⚠️ **`gourmet/incoming-images/` 含 25 张 2026-07-23 的 2048² 原始手工 PNG（高清母本，gitignored）——任何清理/生成都不得触碰**。若 `gemini-3.1-flash-image` 风格与现网有差，换 `GEMINI_IMAGE_MODEL=gemini-2.5-flash-image`（Nano Banana，marine 同源）或 `gemini-3-pro-image` 再评
 
 ## 6. Phase 4 — 收尾 + 推广（让项目们真的用起来）
 - `audit` 加多项目报告（一个命令扫全部 playground 带 config 的项目）
