@@ -40,9 +40,9 @@ ${color.bold('Options')}
   --force            init: overwrite an existing config; tts/generate: redo all
   --skip-existing    Leave assets that already exist alone
   --only <ids>       Comma-separated ids to act on
-  --backend <name>   generate: comfy | gemini | manual
+  --backend <name>   generate: gemini | manual
   --concurrency <n>  tts: parallel edge-tts calls (default 3)
-  --timeout <ms>     tts: per-clip timeout (default 60000); generate/comfy: per image
+  --timeout <ms>     tts: per-clip timeout (default 60000)
   --retries <n>      tts: retries per clip (default 2)
   -h, --help         Show this help
   -v, --version      Show the version
@@ -213,8 +213,8 @@ function reportAudit(report: AuditReport, options: Options): number {
 async function cmdGenerate(options: Options): Promise<number> {
   if (!options.backend) {
     throw new UserError(
-      'generate needs --backend <comfy|gemini|manual>.',
-      'comfy = local ComfyUI, gemini = Gemini image API, manual = write the prompt sheet and stop.',
+      'generate needs --backend <gemini|manual>.',
+      'gemini = Gemini image API, manual = write the prompt sheet and stop.',
     )
   }
 

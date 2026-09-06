@@ -8,7 +8,7 @@
 - gourmet 现有脚本：`scripts/prompt.mjs`（风格常量 STYLE + buildPrompt）、`write-prompt-sheet.mjs`、`import-images.mjs`、`generate-images.mjs`（Gemini API，`GEMINI_API_KEY`，768×768 webp via sharp，~$0.039/图，idempotent）
 - marine 图片规格：768×768 webp ~15–35KB；gourmet 同 768 webp。**两项目共用这一规格**
 - 音频现状：无文件，运行时 Web Speech（gourmet `useSpeech.ts` + `VoiceContext` 排序挑 zh-CN 音色）
-- 机器上：`~/ComfyUI` 有源码 + `.venv`（Python 3.12 / torch 2.13.0 / MPS 可用）。SDXL `sd_xl_base_1.0.safetensors`（~6.5GB）已放入 `models/checkpoints/`。comfy-cli 经 `uv tool install comfy-cli` 安装；`comfy launch --background` 起 8188。M5 Pro 24GB 跑 SDXL 判定 **marginal（可跑偏慢）**。
+- 机器上：`~/ComfyUI` 有源码 + `.venv`（Python 3.12 / torch 2.13.0 / MPS 可用）。曾放 SDXL `sd_xl_base_1.0.safetensors`（~6.5GB）于 `models/checkpoints/`（**2026-09-06 已删**——该路径已被否决）；ComfyUI 现保留供**视频生成实验**（Sulphur-2/LTX 栈），与图像管线无关。comfy-cli 经 `uv tool install comfy-cli` 安装；`comfy launch --background` 起 8188
 - `edge-tts` 可用（hermes venv 内），zh-CN + en-US 音色齐全；`sharp` 两项目都在用
 - `~/.claude/skills/image-prompt-studio/` 存在（含 import-images.mjs）
 
@@ -23,7 +23,7 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
 │   ├── prompts.ts            # 生成 prompt sheet（markdown + JSON，风格来自 config）
 │   ├── backend/
 │   │   ├── types.ts          # BackendAdapter 接口（可插拔）
-│   │   ├── comfy.ts          # ComfyUI 本地 REST（探测模型，缺则报清晰指引）
+│   │   ├── ~~comfy.ts~~      # 已删 2026-09-06（SDXL 路径否决；git 历史可恢复）
 │   │   ├── gemini.ts         # Gemini 图片 API（gourmet generate-images.mjs 逻辑搬过来）
 │   │   └── manual.ts         # 只产出 sheet，人肉生成（兼容今天流程）
 │   ├── import-images.ts      # sharp 统一转 webp/768（收敛三份重复实现）
@@ -90,13 +90,13 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
 > 环境事实修正：edge-tts 是**微软在线服务**（非本地合成），故有超时+重试；prosody 参数必须写成 `--rate=-8%`（argparse 会把 `-8%` 当成下一个 flag），真实验收时踩到并已修。
 > 音频入库：`public/audio/` **提交进 gourmet 仓库**（与 `public/images/` 一致，clone 即可用，不依赖在线服务的可复现性）。
 
-## 5. Phase 3 — 图像后端（可插拔，从 ComfyUI 开始）
+## 5. Phase 3 — 图像后端（历史：ComfyUI 尝试 → 否决 → Gemini 定案）
 1. ✅ `backend/types.ts`：`BackendAdapter { generate(item, style): Promise<{file}> }`
-2. ✅ `comfy.ts`：探测 `http://127.0.0.1:8188/system_stats`；无 checkpoint 时报下载命令；API-format workflow 可注入 prompt/seed
+2. 🗑️ ~~`comfy.ts` + SDXL workflow~~：随路径否决于 2026-09-06 移除（含其测试；git 历史 `6367e02` 可恢复）
 3. ✅ `gemini.ts`：移植 gourmet `generate-images.mjs`（idempotent、跳过已有）
 4. ✅ `manual.ts`：输出 sheet + 空跑（提示人工）
 5. ❌ **验收关口（已审，未过）**：xiaolongbao / mapo-doufu / tanghulu 三道菜 ComfyUI 出图 → import → 人审风格。**结果：否决**，见下方 🔴 关口记录
-6. ✅ 测试：adapter 接口契约、comfy 探测失败分支、gemini 跳过已有
+6. ✅ 测试：adapter 接口契约、gemini 跳过已有（comfy 用例随适配器移除）
 
 ### 🔴 关口记录（2026-09-06）：ComfyUI + SDXL base 1.0 路径被否决
 - **验收动作**：3 道菜（xiaolongbao/mapo-doufu/tanghulu）SDXL 出图 → 用户人工评审
@@ -129,4 +129,4 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
 - `npm test`（vitest）
 - Phase 1/2 验收 = gourmet 真实数据全流程；Phase 3 验收 = 3 道菜真实出图人工评审
 - 冒烟脚本 `scripts/smoke.sh` 用假数据跑通 prompts→(manual)→import→audit
-- 边界：config 缺失/数据字段不符 → 报错信息指出具体缺什么；ComfyUI 未装模型 → 指引命令而非裸报错
+- 边界：config 缺失/数据字段不符 → 报错信息指出具体缺什么；Gemini key 缺失 → 指引去 AI Studio 申请而非裸报错

@@ -34,7 +34,7 @@
 - **不用维护第二份清单**：工厂读 App 自己的数据模块（`foods.ts` / `creatures.ts`），加一道菜它自动知道要多一张图、多一段配音——不存在两份数据不同步的问题
 - **跑一半不怕**：state 文件记进度，断电重跑只补剩下的（替代 marine 手工勾 Progress Tracker 复选框）
 - **配音是白捡的新能力**：edge-tts 本地免费合成 mp3，比浏览器运行时合成稳定——gourmet 那套挑音色/防联网音色翻车的代码以后可删
-- **后端随便换**：出图可走 ComfyUI 本地（免费）/ Gemini API（付费）/ 手工模式，同一命令入口，不锁死
+- **后端简单直接**：出图走 Gemini API（生产）；手工模式（只出 prompt sheet，人肉生成后 import）兼容无 key 场景。曾试本地 ComfyUI+SDXL，质量不达标已移除（教训见 PLAN §5 关口记录）
 - **收敛重复**：gourmet 一套导入脚本、marine 一套、image-prompt-studio skill 里又一套——统一成一个公共工具
 
 最终效果：再开一个新 App（恐龙小课堂、蔬菜小课堂…），写好数据 + 配置，图、音、审计全自动。
@@ -53,14 +53,14 @@
 ```bash
 npx asset-factory init       # ✅ 在目标 App 里生成一份 factory.config.json 起步
 npx asset-factory prompts    # ✅ 生成 prompt sheet + .asset-factory/prompts.json
-npx asset-factory generate   # ✅ 出图：--backend comfy | gemini | manual
+npx asset-factory generate   # ✅ 出图：--backend gemini | manual
 npx asset-factory import     # ✅ 统一转 webp/裁尺寸，落到 public/images/...
 npx asset-factory tts        # ✅ edge-tts 批量配音 → mp3 + audio-manifest.json
 npx asset-factory audit      # ✅ 覆盖率报告：还差哪些图/音；缺东西时退出码非零
 ```
 
 常用选项：`--cwd <dir>` 指定 App 根目录、`--group <name>` 指定资产组、`--json` 机器可读输出、`--skip-existing` 跳过已有文件、`--only a,b` 只处理指定 id。
-`generate` 必须带 `--backend comfy|gemini|manual`（ComfyUI 要本机 8188 在跑且有 checkpoint；Gemini 要 `GEMINI_API_KEY`）。出图落到 `incoming-images/`，再 `import` 转成最终 webp。
+`generate` 带 `--backend gemini|manual`（gemini 要 `GEMINI_API_KEY`；manual 只写 prompt sheet）。出图落到 `incoming-images/`，再 `import` 转成最终 webp。
 `tts` 另有 `--force`（全量重配）、`--concurrency` / `--timeout` / `--retries`；找不到 edge-tts 时用 `EDGE_TTS_BIN` 指路。
 
 配音是**增量**的：`audio-manifest.json` 记了每条原文的摘要，改了 `foods.ts` 里某道菜的 `intro`，下次 `tts` 只重配那一条。

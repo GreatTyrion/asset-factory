@@ -195,7 +195,7 @@ describe('cli', () => {
     const result = await cli(['generate', '--cwd', app.root, '--backend', 'midjourney'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('midjourney')
-    expect(result.stdout).toContain('comfy')
+    expect(result.stdout).toContain('gemini')
   })
 
   it('synthesizes voice-over and writes an audio manifest', async () => {

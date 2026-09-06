@@ -1,7 +1,7 @@
 // Pluggable image backends. `generate` is the whole contract: given one
 // record's prompt (and the shared style), write a file and say where it went.
 
-export type BackendName = 'comfy' | 'gemini' | 'manual'
+export type BackendName = 'gemini' | 'manual'
 
 export interface GenerateItem {
   id: string
@@ -25,7 +25,7 @@ export interface BackendAdapter {
   generate(item: GenerateItem, style?: string): Promise<GenerateResult>
 }
 
-const BACKENDS: BackendName[] = ['comfy', 'gemini', 'manual']
+const BACKENDS: BackendName[] = ['gemini', 'manual']
 
 export function isBackendName(value: string): value is BackendName {
   return (BACKENDS as string[]).includes(value)

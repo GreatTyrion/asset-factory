@@ -6,7 +6,6 @@
 import { mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComfyAdapter, seedFor } from './backend/comfy.ts'
 import { GeminiAdapter } from './backend/gemini.ts'
 import { ManualAdapter } from './backend/manual.ts'
 import { allowedBackends, isBackendName, type BackendAdapter, type GenerateItem } from './backend/types.ts'
@@ -36,6 +35,16 @@ export function incomingPath(root: string, incomingDir: string, id: string): str
   return join(root, incomingDir, `${id}.png`)
 }
 
+// Stable per-id seed (FNV-1a 32-bit) so reruns of the same dish don't wander.
+export function seedFor(id: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
 export function resolveBackend(name: string, options: { timeoutMs?: number } = {}): BackendAdapter {
   if (!isBackendName(name)) {
     throw new UserError(
@@ -44,8 +53,6 @@ export function resolveBackend(name: string, options: { timeoutMs?: number } = {
     )
   }
   switch (name) {
-    case 'comfy':
-      return new ComfyAdapter({ timeoutMs: options.timeoutMs })
     case 'gemini':
       return new GeminiAdapter()
     case 'manual':

@@ -19,7 +19,7 @@
 
 ```bash
 npx asset-factory prompts    # 生成 prompt sheet + 提示词 JSON
-npx asset-factory generate   # 交给后端批量出图（ComfyUI 本地 / Gemini API / 手工模式）
+npx asset-factory generate   # 交给后端批量出图（Gemini API / 手工模式）
 npx asset-factory import     # 统一转 webp/裁尺寸，落到 public/images/...
 npx asset-factory tts        # edge-tts 批量生成中文/英文配音 mp3（全新能力）
 npx asset-factory audit      # 覆盖率报告：还差哪些图/音
@@ -28,7 +28,7 @@ npx asset-factory audit      # 覆盖率报告：还差哪些图/音
 **单一数据源原则**：资产清单不另存一份——直接读 App 自己的数据模块（gourmet `src/data/foods.ts` 的 `Food[]`、marine `src/data/creatures.ts`），App 加一道菜，工厂自动知道要多一张图。
 
 ## 关键设计决策
-- **后端可插拔**：ComfyUI（本机已装，但零模型，需先下 checkpoint）/ Gemini API（gourmet 已有 paid key 流程）/ 手工模式（只出 prompt sheet，人肉生成后 import——今天的流程但工具统一）
+- **后端简单**：Gemini API（生产出图）+ 手工模式（只出 prompt sheet，人肉生成后 import）。曾试 ComfyUI 本地出图（SDXL），风格/语义不达标被否，适配器已移除——教训见 PLAN §5 关口记录
 - **配音是新增值**：edge-tts 本地免费，预生成 mp3 替代运行时合成，顺带解决 gourmet 的音色翻车问题
 - **状态可续跑**：进度存本地 state 文件，生成一半断电不重来（替代 marine 的手工复选框）
 
