@@ -2,7 +2,7 @@
 
 给孩子 App 批量生产教学资产（图片 + 配音）的本地流水线 CLI。吃掉 gourmet / marine-organism 里的人肉流程。
 
-**状态：Phase 1–3 已完成**——`init` / `prompts` / `generate` / `import` / `tts` / `audit` 可用。gourmet 配音 28/28 已入库；图像后端（ComfyUI / Gemini / manual）已接上，**3 道菜 ComfyUI 出图等人工评审风格**后再决定是否批量 28 张。首个吃自己的客户：`gourmet` → 接下来 `marine-organism`（16 张图）。
+**状态：Phase 1–3 已完成**——`init` / `prompts` / `generate` / `import` / `tts` / `audit` 可用。gourmet 配音 28/28 已入库；图像走 Gemini API（gemini-3.1-flash-image）批量 28 张完成、用户满意，**备选集已归档不合入**（webp → `gourmet/gemini-batch/`，原始 PNG → `gourmet/gemini-batch-png/`，App 保持原手工图）。首个真实使用方（dogfooding）：`gourmet` 已跑通 → 接下来 `marine-organism`（16 张图）。
 
 ## 它是干什么的（大白话）
 

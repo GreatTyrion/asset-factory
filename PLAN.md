@@ -1,7 +1,7 @@
 # asset-factory 开发计划
 
-> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 代码 ✅**。**图像方向：C（Gemini API，基准 gemini-3.1-flash-image）**。评审残留已清理（comfy-review/gemini-review/gemini-review-2.5 已删）；批量策略改为**不覆盖原图**：输出到 `gourmet/gemini-batch/`（隔离目录+强化风格指南，已验证 28 项清单），审过再谈替换。实测成本 ~0.087 CAD/图（6 图 0.52 CAD）。实现依据；idea.md 是需求来源。
-> 首个吃自己的客户：gourmet（28 图，真实数据在 `src/data/foods.ts`）和 marine-organism（16 图，`src/data/creatures.ts`）。
+> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 ✅（完结）**。图像方向 C（gemini-3.1-flash-image）批量 28 张完成，用户整体满意（含个别瑕疵，如 tanghulu/beijing-kaoya/doujiang-youtiao，用户接受不改）。**最终决策：备选集不合入**——webp 存 `gourmet/gemini-batch/`、原始 PNG 存 `gourmet/gemini-batch-png/`，App 现网图保持原手工集（已在 CLAUDE.md 铁律注明）。实测成本 ~0.087 CAD/图，28 张 ≈ 2.4 CAD。管线能力已验证可复现。实现依据；idea.md 是需求来源。
+> 首个真实使用方（dogfooding，自己先尝自己做的东西）：gourmet（28 图，真实数据在 `src/data/foods.ts`）和 marine-organism（16 图，`src/data/creatures.ts`）。
 
 ## 1. 环境事实（2026-08 实测，写代码前先复核）
 - gourmet/marine-organism 都是 **Vite + React + TS**，数据在 `src/data/*.ts`（Node 26 可直接 type-strip import TS——gourmet 脚本已这么干）
