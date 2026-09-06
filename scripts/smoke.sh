@@ -68,6 +68,13 @@ grep -q 'A friendly purple octopus. Flat pastel illustration' "$APP/image-prompt
   fail "sheet did not append the shared style"
 pass "sheet + prompts.json cover all 3 records"
 
+step "2b. generate --backend manual"
+expect_exit 0 "generate manual" node "$CLI" generate --cwd "$APP" --backend manual
+expect_output "skipped 3"
+expect_output "incoming-images"
+[ ! -f "$APP/incoming-images/octopus.png" ] || fail "manual backend must not invent image files"
+pass "manual backend writes the sheet and generates nothing"
+
 step "3. audit before any image exists"
 expect_exit 1 "audit with nothing generated" node "$CLI" audit --cwd "$APP"
 expect_output "0/3"

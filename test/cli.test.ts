@@ -173,11 +173,29 @@ describe('cli', () => {
     expect(result.stdout).toContain('--group')
   })
 
-  it('says which phase the unfinished commands belong to', async () => {
+  it('generate --backend manual writes the sheet and does not invent images', async () => {
+    const { app } = await demo()
+    const result = await cli(['generate', '--cwd', app.root, '--backend', 'manual'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('manual')
+    expect(result.stdout).toContain('skipped 3')
+    await expect(readFile(join(app.root, 'image-prompts.md'), 'utf8')).resolves.toContain('save as `apple`')
+    expect(existsSync(join(app.root, 'incoming-images', 'apple.png'))).toBe(false)
+  })
+
+  it('generate refuses to guess a backend', async () => {
     const { app } = await demo()
     const result = await cli(['generate', '--cwd', app.root])
-    expect(result.code).toBe(2)
-    expect(result.stderr).toContain('Phase 3')
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('--backend')
+  })
+
+  it('generate names the allowed backends when the name is unknown', async () => {
+    const { app } = await demo()
+    const result = await cli(['generate', '--cwd', app.root, '--backend', 'midjourney'])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('midjourney')
+    expect(result.stdout).toContain('comfy')
   })
 
   it('synthesizes voice-over and writes an audio manifest', async () => {

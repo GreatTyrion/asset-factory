@@ -2,7 +2,7 @@
 
 给孩子 App 批量生产教学资产（图片 + 配音）的本地流水线 CLI。吃掉 gourmet / marine-organism 里的人肉流程。
 
-**状态：Phase 1 + 2 已完成**——`init` / `prompts` / `import` / `tts` / `audit` 可用，已在 `gourmet` 真实数据上跑通 **56/56**（28 张图 + 28 条中文配音）。只剩 `generate`（Phase 3，可插拔出图后端）是占位命令。首个吃自己的客户：`gourmet` → 接下来 `marine-organism`（16 张图）。
+**状态：Phase 1–3 已完成**——`init` / `prompts` / `generate` / `import` / `tts` / `audit` 可用。gourmet 配音 28/28 已入库；图像后端（ComfyUI / Gemini / manual）已接上，**3 道菜 ComfyUI 出图等人工评审风格**后再决定是否批量 28 张。首个吃自己的客户：`gourmet` → 接下来 `marine-organism`（16 张图）。
 
 ## 它是干什么的（大白话）
 
@@ -51,13 +51,14 @@
 ```bash
 npx asset-factory init       # ✅ 在目标 App 里生成一份 factory.config.json 起步
 npx asset-factory prompts    # ✅ 生成 prompt sheet + .asset-factory/prompts.json
-npx asset-factory generate   #    交给后端批量出图（Phase 3：ComfyUI / Gemini / 手工）
+npx asset-factory generate   # ✅ 出图：--backend comfy | gemini | manual
 npx asset-factory import     # ✅ 统一转 webp/裁尺寸，落到 public/images/...
 npx asset-factory tts        # ✅ edge-tts 批量配音 → mp3 + audio-manifest.json
 npx asset-factory audit      # ✅ 覆盖率报告：还差哪些图/音；缺东西时退出码非零
 ```
 
 常用选项：`--cwd <dir>` 指定 App 根目录、`--group <name>` 指定资产组、`--json` 机器可读输出、`--skip-existing` 跳过已有文件、`--only a,b` 只处理指定 id。
+`generate` 必须带 `--backend comfy|gemini|manual`（ComfyUI 要本机 8188 在跑且有 checkpoint；Gemini 要 `GEMINI_API_KEY`）。出图落到 `incoming-images/`，再 `import` 转成最终 webp。
 `tts` 另有 `--force`（全量重配）、`--concurrency` / `--timeout` / `--retries`；找不到 edge-tts 时用 `EDGE_TTS_BIN` 指路。
 
 配音是**增量**的：`audio-manifest.json` 记了每条原文的摘要，改了 `foods.ts` 里某道菜的 `intro`，下次 `tts` 只重配那一条。
@@ -67,7 +68,7 @@ npx asset-factory audit      # ✅ 覆盖率报告：还差哪些图/音；缺�
 ## 开发
 
 ```bash
-npm test        # vitest，132 个用例
-npm run smoke   # 假数据端到端：prompts → 手工 → import → tts → audit
+npm test        # vitest
+npm run smoke   # 假数据端到端：prompts → generate(manual) → import → tts → audit
 npm run typecheck
 ```

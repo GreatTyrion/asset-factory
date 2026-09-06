@@ -8,6 +8,7 @@ import { relative } from 'node:path'
 import { parseArgs } from 'node:util'
 import { audit, formatBytes, type AuditReport } from './audit.ts'
 import { loadConfig, type ImageItem, type TtsItem } from './config.ts'
+import { generateImages, resolveBackend } from './generate.ts'
 import { importImages } from './import-images.ts'
 import { initConfig } from './init.ts'
 import { UserError, color, log } from './log.ts'
@@ -26,7 +27,7 @@ ${color.bold('Usage')}
 ${color.bold('Commands')}
   init       Write a starter factory.config.json in this app
   prompts    Write the prompt sheet + .asset-factory/prompts.json
-  generate   Produce images through a backend            ${color.dim('(Phase 3)')}
+  generate   Produce images through a backend
   import     Convert the drop folder into final assets
   tts        Synthesize voice-over with edge-tts
   audit      Coverage report: manifest vs. files on disk
@@ -36,17 +37,20 @@ ${color.bold('Options')}
   --config <file>    Explicit factory.config.json path
   --group <name>     Item group to act on, when the config has several
   --json             Machine-readable output (audit, prompts)
-  --force            init: overwrite an existing config; tts: re-synthesize all
+  --force            init: overwrite an existing config; tts/generate: redo all
   --skip-existing    Leave assets that already exist alone
   --only <ids>       Comma-separated ids to act on
+  --backend <name>   generate: comfy | gemini | manual
   --concurrency <n>  tts: parallel edge-tts calls (default 3)
-  --timeout <ms>     tts: per-clip timeout (default 60000)
+  --timeout <ms>     tts: per-clip timeout (default 60000); generate/comfy: per image
   --retries <n>      tts: retries per clip (default 2)
   -h, --help         Show this help
   -v, --version      Show the version
 
 ${color.bold('Environment')}
   EDGE_TTS_BIN       Path to the edge-tts executable, when it is not on PATH
+  GEMINI_API_KEY     Gemini image API key (--backend gemini)
+  COMFY_URL          ComfyUI base URL (default http://127.0.0.1:8188)
 `
 
 interface Options {
@@ -57,6 +61,7 @@ interface Options {
   force: boolean
   skipExisting: boolean
   only?: string[]
+  backend?: string
   concurrency?: number
   timeoutMs?: number
   retries?: number
@@ -205,10 +210,39 @@ function reportAudit(report: AuditReport, options: Options): number {
   return 1
 }
 
-function notYet(command: string, phase: string, next: string): number {
-  log.error(`\`${command}\` is not implemented yet (${phase}).`)
-  log.info(color.dim(`  For now: ${next}`))
-  return 2
+async function cmdGenerate(options: Options): Promise<number> {
+  if (!options.backend) {
+    throw new UserError(
+      'generate needs --backend <comfy|gemini|manual>.',
+      'comfy = local ComfyUI, gemini = Gemini image API, manual = write the prompt sheet and stop.',
+    )
+  }
+
+  const manifest = await load(options)
+  const item = resolveGroup(manifest.config, 'image', options.group) as ImageItem
+  const adapter = resolveBackend(options.backend, { timeoutMs: options.timeoutMs })
+
+  log.info(`Generating ${color.bold(item.name)} with ${color.cyan(adapter.name)}`)
+
+  const result = await generateImages(manifest, item, adapter, {
+    force: options.force,
+    skipExisting: options.skipExisting,
+    only: options.only,
+    onStart: (asset) => log.info(`${color.dim('…')} ${asset.id}`),
+    onDone: (asset, file) => log.ok(`${asset.id}  ${color.dim(short(manifest.config.root, file))}`),
+    onSkip: (asset, reason) => log.skip(`skip ${asset.id} (${reason})`),
+    onFail: (asset, error) => log.error(`${asset.id}: ${error.message}`),
+  })
+
+  log.info(`\nMade ${result.made.length}, skipped ${result.skipped.length}, failed ${result.failed.length}.`)
+
+  if (adapter.name === 'manual') {
+    log.info(color.dim(`  Drop PNGs named by id into ${manifest.config.incomingDir}/, then \`asset-factory import\`.`))
+  } else if (result.made.length > 0) {
+    log.info(color.dim(`  Next: \`asset-factory import\` to convert incoming PNGs into ${item.outDir}.`))
+  }
+
+  return result.failed.length > 0 ? 1 : 0
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -223,6 +257,7 @@ async function main(argv: string[]): Promise<number> {
       concurrency: { type: 'string' },
       timeout: { type: 'string' },
       retries: { type: 'string' },
+      backend: { type: 'string' },
       json: { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       'skip-existing': { type: 'boolean', default: false },
@@ -260,6 +295,7 @@ async function main(argv: string[]): Promise<number> {
     force: values.force,
     skipExisting: values['skip-existing'],
     only: values.only?.split(',').map((s) => s.trim()).filter(Boolean),
+    backend: values.backend,
     concurrency: numeric('concurrency', values.concurrency, 1),
     timeoutMs: numeric('timeout', values.timeout, 1),
     retries: numeric('retries', values.retries, 0),
@@ -277,7 +313,7 @@ async function main(argv: string[]): Promise<number> {
     case 'tts':
       return cmdTts(options)
     case 'generate':
-      return notYet('generate', 'Phase 3 — pluggable image backends', 'run `asset-factory prompts`, make the images by hand, then `asset-factory import`.')
+      return cmdGenerate(options)
     default:
       log.error(`Unknown command "${command}".`)
       console.log(USAGE)

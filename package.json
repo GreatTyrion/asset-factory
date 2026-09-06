@@ -22,6 +22,7 @@
     "smoke": "bash scripts/smoke.sh"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "ajv": "^8.17.1",
     "sharp": "^0.35.4"
   },

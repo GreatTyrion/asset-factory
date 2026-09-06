@@ -1,6 +1,6 @@
 # asset-factory 开发计划
 
-> 状态：**Phase 1 ✅ 已完成**（提交 `8a2b46e`：86/86 测试通过，gourmet audit 28/28）。下一步 Phase 2 配音。实现依据；idea.md 是需求来源。
+> 状态：**Phase 1 ✅ + Phase 2 ✅ + Phase 3 代码 ✅**（Phase 1: `8a2b46e`；Phase 2: `d7624ed`；Phase 3 适配器已落地）。**验收关口未过**：3 道菜 ComfyUI 出图等人工评审风格，未批量 28 张。
 > 首个吃自己的客户：gourmet（28 图，真实数据在 `src/data/foods.ts`）和 marine-organism（16 图，`src/data/creatures.ts`）。
 
 ## 1. 环境事实（2026-08 实测，写代码前先复核）
@@ -8,7 +8,7 @@
 - gourmet 现有脚本：`scripts/prompt.mjs`（风格常量 STYLE + buildPrompt）、`write-prompt-sheet.mjs`、`import-images.mjs`、`generate-images.mjs`（Gemini API，`GEMINI_API_KEY`，768×768 webp via sharp，~$0.039/图，idempotent）
 - marine 图片规格：768×768 webp ~15–35KB；gourmet 同 768 webp。**两项目共用这一规格**
 - 音频现状：无文件，运行时 Web Speech（gourmet `useSpeech.ts` + `VoiceContext` 排序挑 zh-CN 音色）
-- 机器上：`~/ComfyUI` 已装但 **checkpoints 目录为空**（`put_checkpoints_here` 占位）；ComfyUI 未在跑（8188 无响应）
+- 机器上：`~/ComfyUI` 有源码 + `.venv`（Python 3.12 / torch 2.13.0 / MPS 可用）。SDXL `sd_xl_base_1.0.safetensors`（~6.5GB）已放入 `models/checkpoints/`。comfy-cli 经 `uv tool install comfy-cli` 安装；`comfy launch --background` 起 8188。M5 Pro 24GB 跑 SDXL 判定 **marginal（可跑偏慢）**。
 - `edge-tts` 可用（hermes venv 内），zh-CN + en-US 音色齐全；`sharp` 两项目都在用
 - `~/.claude/skills/image-prompt-studio/` 存在（含 import-images.mjs）
 
@@ -91,17 +91,12 @@ asset-factory/                # 独立工具仓库（不塞进任何 App）
 > 音频入库：`public/audio/` **提交进 gourmet 仓库**（与 `public/images/` 一致，clone 即可用，不依赖在线服务的可复现性）。
 
 ## 5. Phase 3 — 图像后端（可插拔，从 ComfyUI 开始）
-1. `backend/types.ts`：`BackendAdapter { generate(item, style): Promise<{file}> }`
-2. `comfy.ts`：探测 `http://127.0.0.1:8188/system_stats`；有 checkpoint 才能跑——**启动前先补模型**：
-   ```bash
-   comfy launch --background   # 或 ~/ComfyUI 手动起
-   comfy model download --url "https://huggingface.co/.../sd_xl_base_1.0.safetensors" --relative-path models/checkpoints
-   ```
-   需要一个 API-format 的 txt2img workflow（可用 Hermes comfyui skill 的 `workflows/sdxl_txt2img.json` 起步），风格一致性靠共用 STYLE 串 + 固定 seed 族
-3. `gemini.ts`：移植 gourmet `generate-images.mjs`（idempotent、跳过已有）
-4. `manual.ts`：输出 sheet + 空跑（提示人工）
-5. **验收（真实验收，非 mock）**：选 3 道菜（如 xiaolongbao/mapo-doufu/tanghulu），ComfyUI 出图 → import → 人工看风格是否与现网一致；不一致就调 STYLE/checkpoint 再验
-6. 测试：adapter 接口契约、comfy 探测失败分支、gemini 跳过已有
+1. ✅ `backend/types.ts`：`BackendAdapter { generate(item, style): Promise<{file}> }`
+2. ✅ `comfy.ts`：探测 `http://127.0.0.1:8188/system_stats`；无 checkpoint 时报下载命令；API-format workflow 可注入 prompt/seed
+3. ✅ `gemini.ts`：移植 gourmet `generate-images.mjs`（idempotent、跳过已有）
+4. ✅ `manual.ts`：输出 sheet + 空跑（提示人工）
+5. ⏳ **验收关口（真实验收，非 mock）**：xiaolongbao / mapo-doufu / tanghulu 三道菜 ComfyUI 出图 → import → **等人审风格**是否与现网 28 张一致。不一致就调 STYLE/checkpoint，**不要批量跑 28 张**。
+6. ✅ 测试：adapter 接口契约、comfy 探测失败分支、gemini 跳过已有
 
 ## 6. Phase 4 — 收尾 + 推广（让项目们真的用起来）
 - `audit` 加多项目报告（一个命令扫全部 playground 带 config 的项目）
