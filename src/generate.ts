@@ -35,17 +35,7 @@ export function incomingPath(root: string, incomingDir: string, id: string): str
   return join(root, incomingDir, `${id}.png`)
 }
 
-// Stable per-id seed (FNV-1a 32-bit) so reruns of the same dish don't wander.
-export function seedFor(id: string): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}
-
-export function resolveBackend(name: string, options: { timeoutMs?: number } = {}): BackendAdapter {
+export function resolveBackend(name: string): BackendAdapter {
   if (!isBackendName(name)) {
     throw new UserError(
       `Unknown image backend "${name}".`,
@@ -84,7 +74,6 @@ export async function generateImages(
       id: asset.id,
       prompt: asset.prompt ?? '',
       outFile: dest,
-      seed: seedFor(asset.id),
     }
 
     if (!options.force) {

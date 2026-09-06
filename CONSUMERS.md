@@ -24,7 +24,7 @@ When Cursor/Claude scaffolds a new kids app (placeholders first, assets later), 
 1. **Data module exports an array** of items with a stable slug `id` (e.g. `src/data/creatures.ts` exporting `CREATURES`)
 2. **Each item carries an English `imagePrompt` field** — the only thing that can't be auto-derived. Write it together with the content (marine-organism lacks this and must retrofit; gourmet has it and connects trivially). Even if images stay placeholders, the field should exist.
 3. **Placeholder-friendly image component** (gourmet's `FoodImage` pattern: real image if `public/images/<plural>/<id>.webp` exists, else category emoji + name) + image convention `public/images/<plural>/<id>.webp` at 768px
-4. Keep the art-direction vibe documented (a style guide string somewhere — CLAUDE.md or config) — the first asset batch for a new app usually needs 1–2 style iterations (the gourmet SDXL saga was this), so having the intended vibe in writing shortens that loop
+4. Keep the art-direction vibe documented (a style guide string somewhere — CLAUDE.md or config) — the first asset batch for a new app usually needs 1–2 style iterations (gourmet's `styleGuide` had to grow explicit bans: no text, no blurred kitchen, no extra tableware, plain cream backdrop), so having the intended vibe in writing shortens that loop. A style guide only steers a model that can already draw the subject — gourmet's SDXL attempt failed on capability, not wording (PLAN §5 gate record), and no prompt could have saved it
 
 Then, when assets are wanted later: follow the checklist below — connection is a 10-minute job if seeds 1–3 exist.
 

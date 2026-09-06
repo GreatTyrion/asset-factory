@@ -9,8 +9,6 @@ export interface GenerateItem {
   prompt: string
   /** Where the adapter must write the image (PNG in the app's incoming folder). */
   outFile: string
-  /** Stable per-id seed so reruns of the same dish don't wander. */
-  seed: number
 }
 
 export interface GenerateResult {

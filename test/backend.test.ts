@@ -10,14 +10,12 @@ import { describe, expect, it } from 'vitest'
 import { GeminiAdapter } from '../src/backend/gemini.ts'
 import { ManualAdapter } from '../src/backend/manual.ts'
 import { allowedBackends, isBackendName, type GenerateItem } from '../src/backend/types.ts'
-import { seedFor } from '../src/generate.ts'
 
 function item(overrides: Partial<GenerateItem> = {}): GenerateItem {
   return {
     id: 'apple',
     prompt: 'A red apple',
     outFile: join(tmpdir(), 'af-test-out.png'),
-    seed: seedFor('apple'),
     ...overrides,
   }
 }
@@ -87,13 +85,5 @@ describe('manual backend', () => {
     expect(adapter.name).toBe('manual')
     const result = await adapter.generate(item())
     expect(result.skipped).toBe(true)
-  })
-})
-
-describe('seedFor', () => {
-  it('is stable for a given id and different across dishes', () => {
-    expect(seedFor('xiaolongbao')).toBe(seedFor('xiaolongbao'))
-    expect(seedFor('xiaolongbao')).not.toBe(seedFor('mapo-doufu'))
-    expect(seedFor('xiaolongbao')).toBeGreaterThan(0)
   })
 })

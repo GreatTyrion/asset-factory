@@ -219,7 +219,7 @@ async function cmdGenerate(options: Options): Promise<number> {
 
   const manifest = await load(options)
   const item = resolveGroup(manifest.config, 'image', options.group) as ImageItem
-  const adapter = resolveBackend(options.backend, { timeoutMs: options.timeoutMs })
+  const adapter = resolveBackend(options.backend)
 
   log.info(`Generating ${color.bold(item.name)} with ${color.cyan(adapter.name)}`)
 
