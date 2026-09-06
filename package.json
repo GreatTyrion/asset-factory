@@ -1,0 +1,33 @@
+{
+  "name": "asset-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local pipeline that turns a kids-app data module into images + voice-over assets.",
+  "bin": {
+    "asset-factory": "./src/cli.ts"
+  },
+  "files": [
+    "src",
+    "factory.config.schema.json",
+    "docs"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "smoke": "bash scripts/smoke.sh"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

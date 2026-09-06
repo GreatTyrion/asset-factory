@@ -1,0 +1,4 @@
+node_modules/
+.asset-factory/
+*.log
+.DS_Store

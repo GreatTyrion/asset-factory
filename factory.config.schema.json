@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://local/asset-factory/factory.config.schema.json",
+  "title": "factory.config.json",
+  "description": "Declares which assets an app needs. Lives in the target app's root. The app's own data module stays the single source of truth — this file only says how to read assets out of it.",
+  "type": "object",
+  "required": ["name", "dataSource", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "App name, used in reports."
+    },
+    "dataSource": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Path (relative to this config) of the module exporting the record array, e.g. src/data/foods.ts"
+    },
+    "dataExport": {
+      "type": "string",
+      "description": "Named export holding the array. Defaults to the default export, or the only exported array."
+    },
+    "idField": {
+      "type": "string",
+      "default": "id",
+      "description": "Record field used as the asset filename stem."
+    },
+    "labelField": {
+      "type": "string",
+      "description": "Record field shown as the human-readable heading in the prompt sheet. Defaults to idField."
+    },
+    "groupField": {
+      "type": "string",
+      "description": "Record field used to bucket the prompt sheet into sections, e.g. category."
+    },
+    "incomingDir": {
+      "type": "string",
+      "default": "incoming-images",
+      "description": "Drop folder scanned by `asset-factory import`."
+    },
+    "promptSheet": {
+      "type": "string",
+      "default": "image-prompts.md",
+      "description": "Where `asset-factory prompts` writes the copy-paste markdown sheet."
+    },
+    "styleGuide": {
+      "type": "string",
+      "description": "Shared art direction appended to every image prompt."
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Each entry turns every record into one asset.",
+      "items": { "$ref": "#/definitions/item" }
+    }
+  },
+  "definitions": {
+    "item": {
+      "type": "object",
+      "required": ["kind", "outDir"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["image", "tts"],
+          "description": "image = generated/imported picture; tts = synthesized voice-over."
+        },
+        "name": {
+          "type": "string",
+          "description": "Group name, used in state keys and reports. Defaults to kind."
+        },
+        "outDir": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Output folder, relative to the app root."
+        },
+        "promptField": {
+          "type": "string",
+          "description": "kind=image: record field holding the per-item art direction."
+        },
+        "format": {
+          "enum": ["webp", "png", "jpeg", "avif"],
+          "default": "webp",
+          "description": "kind=image: output encoding."
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 4096,
+          "default": 768,
+          "description": "kind=image: output square edge in pixels."
+        },
+        "fit": {
+          "enum": ["cover", "contain", "inside"],
+          "default": "cover",
+          "description": "kind=image: sharp resize strategy."
+        },
+        "quality": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 82,
+          "description": "kind=image: encoder quality."
+        },
+        "textField": {
+          "type": "string",
+          "description": "kind=tts: record field holding the text to read aloud."
+        },
+        "lang": {
+          "type": "string",
+          "description": "kind=tts: BCP-47 tag, e.g. zh-CN."
+        },
+        "voice": {
+          "type": "string",
+          "description": "kind=tts: edge-tts voice, e.g. zh-CN-XiaoxiaoNeural."
+        }
+      }
+    }
+  }
+}
